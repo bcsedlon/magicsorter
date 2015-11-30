@@ -15,11 +15,18 @@ from StringIO import StringIO
 import tesseract
 
 import copy
+from ms.management.commands.modbus import ModbusServer
 #from PIL import Image    
 
 OUTBOX_NUM = 0
 THUMB_RATIO = 0.5
 THUMB_RATIO2 = 0.2
+
+import threading
+import modbus
+import time
+
+
 
 def t():
         mImgFile = '2a.jpg'
@@ -70,6 +77,34 @@ def t():
     
 SCAN = 0
 
+def sorter():
+    global SCAN
+    
+    while SCAN != -1:
+        print 'Servo: go to take card'
+        modbus.Scanner.outServo.value = 0
+        time.sleep(5)
+        #while modbus.Scanner.inServo.value != 0:
+        #    pass
+    
+        print 'Servo: go to scan position'
+        modbus.Scanner.outServo.value = 100
+        time.sleep(5)
+        #while modbus.Scanner.inServo.value != 100:
+        #    pass
+    
+        print 'Sorter: scan card'
+        if SCAN != -1:
+            SCAN = 1
+            time.sleep(5)
+        
+        print 'Sorter: go to kick off card'
+        modbus.Scanner.outServo.value = 120
+        time.sleep(5)
+        #while modbus.Scanner.inServo.value != 120:
+        #    pass
+    
+
 def mouseclick(event,x,y,flags,param):
         #if event == cv2.EVENT_LBUTTONDBLCLK:
         global SCAN
@@ -80,13 +115,24 @@ def mouseclick(event,x,y,flags,param):
             
 class Command(BaseCommand):
 
-    help = 'Does some magical work'
+    help = 'magis sorter'
+    
+    
+    
+    
+        
     global SCAN
 
     
     def handle(self, *args, **options):
-        """ Do your work here """
+
         global SCAN
+        
+        #ModbusServer.startServer()
+        modbus.ModbusServer.startServerAsync()
+        
+        thr = threading.Thread(target= sorter, args=(), kwargs={})
+        thr.start()
         
         #Card.objects.all().delete()
         #cards = Card.objects.order_by('pk')
@@ -143,7 +189,10 @@ class Command(BaseCommand):
          if k == 113 or SCAN== -1:
              # q
              break
-         if k == 27 or SCAN== 1:
+         
+         
+         
+         if k == 27 or SCAN == 1:
              # esc
            
             #inp = raw_input('Press Enter for next, q for quit: ')
@@ -212,7 +261,7 @@ class Command(BaseCommand):
                     img2 = cv2.resize(img, (0,0), fx=THUMB_RATIO2, fy=THUMB_RATIO2)   
                     
                     
-                    text = 'match: ' + str(card.id)
+                    text = 'Scan: match: ' + str(card.id)
                     print text
                     break
         
@@ -226,7 +275,7 @@ class Command(BaseCommand):
                 img2 = None
                 
                 
-                text = 'new: ' + str(card.id)
+                text = 'Scan: new: ' + str(card.id)
                 print text
                 
                 card.count = 1
@@ -294,7 +343,12 @@ class Command(BaseCommand):
             
         
         cap.release()
-        cv2.destroyAllWindows()      
+        cv2.destroyAllWindows()    
+        
+       
+        thr.join()
+        modbus.ModbusServer.stopServer()
+          
         return       
         
         hist = cv2.calcHist([img],[0],None,[256],[0,256])
