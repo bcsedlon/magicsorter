@@ -1,0 +1,56 @@
+{% extends 'ms/base.html' %}
+
+{% block content %}
+
+{% load staticfiles %}
+
+<table border="0">
+	{% for card in cards %}
+        {% cycle '<tr>' '' '' '' %}
+        	<td>
+				<table border="1">
+					<tr>
+						<td colspan="2">
+							<a href="{% url 'ms:card' card.id %}"><img height="100" src="{% static card.thumb.name %}" /></a>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Id
+						</td>
+						<td>
+							{{card.id}}
+						</td>
+					</tr>
+										<tr>
+						<td>
+							Count
+						</td>
+						<td>
+							{{card.count}}
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Name
+						</td>
+						<td>
+							{{card.name}}
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Price
+						</td>
+						<td>
+							{{card.price}}
+						</td>
+					</tr>
+
+            	</table>
+            </td>
+        {% cycle '' '' '' '</tr>' %}
+	{% endfor %}
+</table>
+
+{% endblock %}

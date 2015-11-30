@@ -1,0 +1,30 @@
+<html>
+	<head>
+		<title>Magic Sorter</title>
+		
+    </head>
+
+	<body>
+   		<h3>
+			Cards sort by 	
+			
+   			<a href="{% url 'ms:cards' %}">Count</a>
+			<a href="{% url 'ms:cards' 'pk'  %}">Id</a>
+			<a href="{% url 'ms:cards' 'name'  %}">Name</a>
+			<a href="{% url 'ms:cards' '-price'  %}">Price</a>
+			
+ 			<a href="{% url 'ms:card' 0 %}">Removed</a>
+ 			
+ 			<a href="{% url 'ms:cards' 'all' %}">All</a>
+ 			
+		</h3>
+
+	{% if form %}
+		{% if form.errors %}<p><strong>{{ form.errors }}</strong></p>{% endif %}
+	{% endif %}
+	
+       {% block content %}
+
+       {% endblock %} 
+    </body>
+</html>

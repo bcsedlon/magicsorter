@@ -1,0 +1,11 @@
+{% extends 'ms/base.html' %}
+{% block content %}
+
+<h3>{{ object.id }} {{ object.name }}</h3>
+
+<form action="{% url 'ms:card_delete' card.id %}" method="post">{% csrf_token %}
+    <p>Are you sure you want to delete"?</p>
+    <input type="submit" name="delete" value="Confirm!" />
+</form>
+
+{% endblock %}

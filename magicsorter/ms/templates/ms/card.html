@@ -1,0 +1,74 @@
+{% extends 'ms/base.html' %}
+
+{% block content %}
+
+{% load staticfiles %}
+
+{% if card %}
+<table border="1">
+		<form action="" method="post">{% csrf_token %}
+					<tr>
+						<td colspan="2">
+							<a href="{% static card.image.name %}"><img src="{% static card.thumb.name %}" /></a>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Id
+						</td>
+						<td>
+							{{card.id}}
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Count
+						</td>
+						<td>
+							{{card.count}}
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Name
+						</td>
+						<td>
+							{{form.name}}
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Price
+						</td>
+						<td>
+							{{form.price}}
+						</td>
+					</tr>
+					<tr><td></td><td><input type="submit" name="save" value="Save!" /></td></tr>
+					<tr><td></td><td><a href="{% url 'ms:card_delete' card.id %}">Delete</a></td></tr>
+		</form>
+</table>
+<br/>
+{% endif %}
+
+<table border="1">
+	<tr>
+		<th>Order</th><th>Image</th><th>Remove</th>
+	</tr>
+	{% for scan in scans %}
+		<tr>
+			<td>
+				{{scan.order}}
+			</td>
+			<td>
+				<a href="{% static scan.image.name %}"><img height="100" src="{% static scan.image.name %}" /></a>
+			</td>
+			<td>
+				{% if card %}
+				<a href="{% url 'ms:scan_delete' scan.id %}">Remove!</a>
+				{% endif %}
+			</td>
+		</tr>
+	{% endfor %}
+</table>
+{% endblock %}
