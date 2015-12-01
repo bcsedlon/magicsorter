@@ -87,7 +87,7 @@ def scan_delete(request, pk):
 
 def card(request, pk):
     if pk=='0':
-        scans = Scan.objects.filter(fk_card_id=0).order_by('order')
+        scans = Scan.objects.filter(fk_card_id=0).order_by('position')
         #scans = Scan.objects.order_by('order')
         context = RequestContext(request, {
             'scans': scans })

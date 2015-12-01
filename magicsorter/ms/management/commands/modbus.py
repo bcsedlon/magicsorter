@@ -41,26 +41,39 @@ class Scanner():
     outServo = ScannerInstrument('outServo', 1, True)
     instruments.append(outServo)
     
-    outFeeder = ScannerInstrument('outFeeder', 2, True)
+    outOutbox = ScannerInstrument('outBox', 2, True)
+    instruments.append(outOutbox)
+    
+    outFeeder = ScannerInstrument('outFeeder', 3, True)
     instruments.append(outFeeder)
     
-    inServo = ScannerInstrument('inServo', 3, False)
+    inServo = ScannerInstrument('inServo', 11, False)
     instruments.append(inServo)
+    
+    inOutbox = ScannerInstrument('inOutbox', 12, False)
+    instruments.append(inOutbox)
+    
+    inFeeder = ScannerInstrument('inFeeder', 13, False)
+    instruments.append(inFeeder)
 
 
 class ModbusServer(): 
-        
-    station = minimalmodbus.Instrument('COM3', 1) # port name, slave address (in decimal)
-
-    print station.serial.port          # this is the serial port name
     
-    #station.debug = True
-    station.serial.baudrate = 9600   # Baud
-    station.serial.bytesize = 8
-    #station.serial.parity   = serial.PARITY_NONE
-    station.serial.stopbits = 2
-    station.serial.timeout  = 0.05   # seconds
-    station.serial.timeout  = 0.5   # seconds
+    station = None    
+    
+    @staticmethod
+    def init(port):
+        ModbusServer.station = minimalmodbus.Instrument(port, 1) # port name, slave address (in decimal)
+
+        print ModbusServer.station.serial.port          # this is the serial port name
+    
+        #station.debug = True
+        ModbusServer.station.serial.baudrate = 9600   # Baud
+        ModbusServer.station.serial.bytesize = 8
+        #station.serial.parity   = serial.PARITY_NONE
+        ModbusServer.station.serial.stopbits = 2
+        ModbusServer.station.serial.timeout  = 0.05   # seconds
+        ModbusServer.station.serial.timeout  = 0.5   # seconds
     
     SERVER = True
        
@@ -79,7 +92,7 @@ class ModbusServer():
         
         while ModbusServer.SERVER:
             #time_now = int(strftime("1%H%M%S", gmtime()))
-            print 'Modbus: -'
+            #print 'Modbus: -'
             for instrument in Scanner.instruments:
                 
                                 
@@ -94,7 +107,7 @@ class ModbusServer():
                     instrument.status = 1
                     #print 'sensor does not response, address {}'.format(address)
                 
-                print 'Modbus: name: {}, value: {} status: {}'.format(instrument.name, instrument.value, instrument.status) 
+                #print 'Modbus: name: {}, value: {} status: {}'.format(instrument.name, instrument.value, instrument.status) 
                     
     
             #time.sleep(5)

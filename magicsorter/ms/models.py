@@ -23,7 +23,7 @@ class CardForm(ModelForm):
         fields = ['image', 'thumb', 'name', 'price', 'count', 'outbox']
     
 class Scan(models.Model):
-    order = models.IntegerField(blank=True, default=0)
+    position = models.IntegerField(blank=True, default=0)
     fk_card = models.ForeignKey(Card)
     outbox = models.IntegerField(blank=True, default=0)
     

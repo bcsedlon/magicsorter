@@ -18,7 +18,7 @@ import copy
 from ms.management.commands.modbus import ModbusServer
 #from PIL import Image    
 
-OUTBOX_NUM = 0
+OUTBOX_NUM = 5
 THUMB_RATIO = 0.5
 THUMB_RATIO2 = 0.2
 
@@ -26,6 +26,7 @@ import threading
 import modbus
 import time
 
+import ConfigParser
 
 
 def t():
@@ -76,33 +77,87 @@ def t():
         return
     
 SCAN = 0
+OUTBOX = 0
 
 def sorter():
     global SCAN
+    global OUTBOX
     
     while SCAN != -1:
-        print 'Servo: go to take card'
+        print 'Sorter: go to take card'
         modbus.Scanner.outServo.value = 0
-        time.sleep(5)
+        time.sleep(1)
         #while modbus.Scanner.inServo.value != 0:
         #    pass
     
-        print 'Servo: go to scan position'
+        print 'Sorter: go to scan position'
         modbus.Scanner.outServo.value = 100
-        time.sleep(5)
+        time.sleep(1)
         #while modbus.Scanner.inServo.value != 100:
         #    pass
     
         print 'Sorter: scan card'
         if SCAN != -1:
             SCAN = 1
-            time.sleep(5)
+            time.sleep(2)
         
-        print 'Sorter: go to kick off card'
+        while OUTBOX==0:
+            pass
+        
+        #wait for out box
+        print 'Sorter: set out box {}'.format(OUTBOX)
+        modbus.Scanner.outFeeder.value = OUTBOX
+        time.sleep(1)
+        #while modbus.Scanner.inFeeder.value != OUTBOX:
+        #    pass
+        
+        print 'Sorter: go to release card'
         modbus.Scanner.outServo.value = 120
-        time.sleep(5)
+        time.sleep(1)
         #while modbus.Scanner.inServo.value != 120:
         #    pass
+
+#second round, no scan, only sort out
+def sorter2(outbox_num):
+    
+    sortingout = []
+    
+    for s in Scan.objects.raw('SELECT id, fk_card_id, outbox, SUM(1) AS cnt FROM ms_scan WHERE position>0 GROUP BY fk_card_id ORDER BY cnt DESC'):
+        if len(sortingout) >=  outbox_num - 1:
+            break
+        
+        print 'Sorter: card_id {} outbox {} count {}'.format(s.fk_card_id, s.outbox, s.cnt) 
+        sortingout.append(s.fk_card_id)
+         
+    #print sortingout 
+ 
+    scans = Scan.objects.filter(position__gt=0).order_by('position')
+     
+    for scan in scans:
+            
+        print 'Sorter: go to take card'
+        modbus.Scanner.outServo.value = 0
+        time.sleep(1)
+        #while modbus.Scanner.inServo.value != 0:
+        #    pass
+    
+        if scan.fk_card_id in sortingout :
+            outbox = sortingout.index(scan.fk_card_id) + 2
+            scan.position = 0
+            scan.save()
+        else:
+            outbox = 1 
+          
+        print 'Sorter: set out box {} for card_id {}'.format(outbox, scan.fk_card_id)
+        modbus.Scanner.outFeeder.value = outbox
+        time.sleep(1)
+        #while modbus.Scanner.inFeeder.value != OUTBOX:
+        #    pass
+        
+        print 'Sorter: go to release card'
+        modbus.Scanner.outServo.value = 120
+        time.sleep(1) 
+    
     
 
 def mouseclick(event,x,y,flags,param):
@@ -115,7 +170,7 @@ def mouseclick(event,x,y,flags,param):
             
 class Command(BaseCommand):
 
-    help = 'magis sorter'
+    help = 'magic sorter'
     
     
     
@@ -126,13 +181,40 @@ class Command(BaseCommand):
     
     def handle(self, *args, **options):
 
+        
+
+        port = None
+        OUTBOX_NUM = 1
+        
+        Config = ConfigParser.ConfigParser()
+        try:
+            Config.read('magicsorter.ini')
+            port = Config.get('modbus', 'port')
+            OUTBOX_NUM = int(Config.get('sorter', 'outbox_num'))
+        except:
+            cfgfile = open('magicsorter.ini','w+')
+            # add the settings to the structure of the file, and lets write it out...
+            Config.add_section('modbus')
+            Config.set('modbus','port','COM1')
+            Config.add_section('sorter')
+            Config.set('sorter','outbox_num','1')
+            
+            Config.write(cfgfile)
+            cfgfile.close()
+            print 'Please check magicsorter.ini and try again!'
+            return
+                
         global SCAN
+        global OUTBOX
+        
+    
+        
         
         #ModbusServer.startServer()
+        modbus.ModbusServer.init(port)
         modbus.ModbusServer.startServerAsync()
         
-        thr = threading.Thread(target= sorter, args=(), kwargs={})
-        thr.start()
+        
         
         #Card.objects.all().delete()
         #cards = Card.objects.order_by('pk')
@@ -145,12 +227,19 @@ class Command(BaseCommand):
         #card = Card.objects.create()
         #card.save()
         
-        order = 0       
+        if Scan.objects.filter(position__gt=0):
+            sorter2(OUTBOX_NUM)
+            modbus.ModbusServer.stopServer()
+            return       
+        
+        thr = threading.Thread(target= sorter, args=(), kwargs={})
+        thr.start()
+        
         Scan.objects.all().delete()
         
+        position = 0
         outbox = 0
-        
-        
+                
         cap = cv2.VideoCapture(1)
         ret = cap.set(3, 1280)#320) 
         ret = cap.set(4, 720)#240)
@@ -193,6 +282,8 @@ class Command(BaseCommand):
          
          
          if k == 27 or SCAN == 1:
+             
+             
              # esc
            
             #inp = raw_input('Press Enter for next, q for quit: ')
@@ -206,12 +297,13 @@ class Command(BaseCommand):
             #        break
             #    pass
             #print 'pass'
+            OUTBOX = 0
             SCAN = 0
                 #if event == cv2.EVENT_LBUTTONDOWN:
                 #    refPt = [(x, y)]
                 #    cropping = True
             #TODO for each card in stock
-            order = order + 1
+            position = position + 1
         
         
         
@@ -261,7 +353,7 @@ class Command(BaseCommand):
                     img2 = cv2.resize(img, (0,0), fx=THUMB_RATIO2, fy=THUMB_RATIO2)   
                     
                     
-                    text = 'Scan: match: ' + str(card.id)
+                    text = 'Scanner: match ' + str(card.id)
                     print text
                     break
         
@@ -275,7 +367,7 @@ class Command(BaseCommand):
                 img2 = None
                 
                 
-                text = 'Scan: new: ' + str(card.id)
+                text = 'Scanner: new ' + str(card.id)
                 print text
                 
                 card.count = 1
@@ -320,7 +412,7 @@ class Command(BaseCommand):
             #row = cursor.fetchone()
             #print row
                 
-            scan = Scan.objects.create(order=order, fk_card=card)
+            scan = Scan.objects.create(position=position, fk_card=card)
             
             scan.outbox = card.outbox
                 
@@ -329,17 +421,23 @@ class Command(BaseCommand):
             cv2.imwrite(tmpfilename, img)
             f = open(tmpfilename, 'rb')
             content = File(f)
-            scan.image.save(str(card.id) + '-'+ str(order) + '.jpg', content)
+            scan.image.save(str(card.id) + '-'+ str(position) + '.jpg', content)
             content.close()
             f.close()
             
+            #print '{} / {}'.format(scan.outbox, OUTBOX_NUM)
             if scan.outbox < OUTBOX_NUM:
-                scan.order = 0
+                scan.position = 0
                 
+                OUTBOX = scan.outbox + 1
                 #put card to outbox
-            
+            else:
+                #1st outbox for notsorted cards
+                OUTBOX = 1
+                
             scan.save()
 
+            OUTBOX = scan.outbox + 1
             
         
         cap.release()

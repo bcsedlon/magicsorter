@@ -28,6 +28,7 @@
 							{{card.count}}
 						</td>
 					</tr>
+					<tr><td>Outbox</td><td>{{card.outbox}}</td></tr>
 					<tr>
 						<td>
 							Name
@@ -53,12 +54,12 @@
 
 <table border="1">
 	<tr>
-		<th>Order</th><th>Image</th><th>Remove</th>
+		<th>position</th><th>Image</th><th>Remove</th>
 	</tr>
 	{% for scan in scans %}
 		<tr>
 			<td>
-				{{scan.order}}
+				{{scan.position}}
 			</td>
 			<td>
 				<a href="{% static scan.image.name %}"><img height="100" src="{% static scan.image.name %}" /></a>
