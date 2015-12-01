@@ -109,7 +109,7 @@ def card(request, pk):
             #    return HttpResponseRedirect('/ms/card/'+str(pk))
               
     
-    scans = Scan.objects.filter(fk_card=card).order_by('order')
+    scans = Scan.objects.filter(fk_card=card).order_by('position')
      
     
     context = RequestContext(request, {
