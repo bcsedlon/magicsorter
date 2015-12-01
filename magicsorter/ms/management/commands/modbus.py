@@ -75,22 +75,20 @@ class ModbusServer():
         ModbusServer.station.serial.timeout  = 0.05   # seconds
         ModbusServer.station.serial.timeout  = 0.5   # seconds
     
-    SERVER = True
-       
+    RUN = True   
     thr = None
     
     @staticmethod
     def stopServer():
         
-        ModbusServer.SERVER = False
-        
+        ModbusServer.RUN = False
         if ModbusServer.thr:
             ModbusServer.thr.join()
         
     @staticmethod
     def startServer():
         
-        while ModbusServer.SERVER:
+        while ModbusServer.RUN:
             #time_now = int(strftime("1%H%M%S", gmtime()))
             #print 'Modbus: -'
             for instrument in Scanner.instruments:
@@ -114,6 +112,7 @@ class ModbusServer():
     
     @staticmethod
     def startServerAsync():
+        ModbusServer.RUN = True
         ModbusServer.thr = threading.Thread(target= ModbusServer.startServer, args=(), kwargs={})
         ModbusServer.thr.start()
 

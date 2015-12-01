@@ -81,7 +81,7 @@ class Sorter():
     outbox_num = 1
     
     RUN = True
-    #thr = None
+    thr = None
     
     @staticmethod 
     def init(outbox_num):
@@ -132,16 +132,17 @@ class Sorter():
             #    pass
         
 
-    #@staticmethod    
-    #def start():
-    #    Sorter.thr = threading.Thread(target= Sorter.sorter, args=(), kwargs={})
-    #    Sorter.thr.start()
+    @staticmethod    
+    def start():
+        Sorter.RUN = TRUE
+        Sorter.thr = threading.Thread(target= Sorter.sorter, args=(), kwargs={})
+        Sorter.thr.start()
 
-    #@staticmethod    
-    #def stop():
-    #    Sorter.RUN = False
-    #    if Sorter.thr:
-    #        Sorter.thr.join()
+    @staticmethod    
+    def stop():
+        Sorter.RUN = False
+        if Sorter.thr:
+            Sorter.thr.join()
 
     #second round, no scan, only sort out
     @staticmethod 
@@ -154,12 +155,21 @@ class Sorter():
                 break
         
             sortingout.append(s.fk_card_id)
-            print 'Sorter2: card_id {} count {} outbox {}'.format(s.fk_card_id, s.cnt, len(sortingout)) 
+            print 'Sorter2: card_id {} count {} out box {}'.format(s.fk_card_id, s.cnt, len(sortingout)) 
                      
         #print sortingout 
         scans = Scan.objects.filter(position__gt=0).order_by('position')
      
         for scan in scans:
+            
+            if scan.fk_card_id in sortingout :
+                outbox = sortingout.index(scan.fk_card_id) + 1
+                scan.position = 0
+                scan.save()
+            else:
+                outbox = 0 
+            print 'Sorter2: set out box {} for card_id {}'.format(outbox, scan.fk_card_id)
+            modbus.Scanner.outFeeder.value = outbox
             
             print 'Sorter2: go to take card'
             modbus.Scanner.outServo.value = 0
@@ -168,16 +178,16 @@ class Sorter():
             #    pass
     
             
-            if scan.fk_card_id in sortingout :
-                outbox = sortingout.index(scan.fk_card_id) + 1
-                scan.position = 0
-                scan.save()
-            else:
-                outbox = 0 
-          
-            print 'Sorter2: set out box {} for card_id {}'.format(outbox, scan.fk_card_id)
-            modbus.Scanner.outFeeder.value = outbox
-            time.sleep(1)
+            
+            #if scan.fk_card_id in sortingout :
+            #    outbox = sortingout.index(scan.fk_card_id) + 1
+            #    scan.position = 0
+            #    scan.save()
+            #else:
+            #    outbox = 0 
+            #print 'Sorter2: set out box {} for card_id {}'.format(outbox, scan.fk_card_id)
+            #modbus.Scanner.outFeeder.value = outbox
+            #time.sleep(1)
             #while modbus.Scanner.inFeeder.value != OUTBOX:
             #    pass
         
@@ -247,13 +257,13 @@ class Scanner():
 
     @staticmethod    
     def start():
+        Scanner.RUN = True
         Scanner.thr = threading.Thread(target= Scanner.run, args=(), kwargs={})
         Scanner.thr.start()
 
     @staticmethod    
     def stop():
         Scanner.RUN = False
-        
         if Scanner.thr:
             Scanner.thr.join()
     
@@ -393,14 +403,13 @@ class Command(BaseCommand):
         modbus.ModbusServer.init(port)
         modbus.ModbusServer.startServerAsync()
         
-        #Card.objects.all().delete()
-        Card.objects.all().update(count=0, outbox=0)
-        
         Sorter.init(outbox_num)
         
         if Scan.objects.filter(position__gt=0):
             Sorter.sort2()
         else:
+            #Card.objects.all().delete()
+            Card.objects.all().update(count=0, outbox=0)
             
             Scan.objects.all().delete()
         
