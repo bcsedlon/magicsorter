@@ -5,7 +5,11 @@
 {% load staticfiles %}
 
 {% if card %}
+<table>
+<tr><td>
+    
 <table border="1">
+
 		<form action="" method="post">{% csrf_token %}
 					<tr>
 						<td colspan="2">
@@ -45,13 +49,45 @@
 							{{form.price}}
 						</td>
 					</tr>
+                    <tr>
+						<td>
+							MTG code
+						</td>
+						<td>
+							{{card.mtgcode}}
+						</td>
+					</tr>
+                    <tr>
+						<td>
+							Rarity
+						</td>
+						<td>
+							<b>{{card.rarity}}</b>
+						</td>
+					</tr>
 					<tr><td></td><td><input type="submit" name="save" value="Save!" /></td></tr>
 					<tr><td></td><td><a href="{% url 'ms:card_delete' card.id %}">Delete</a></td></tr>
-		</form>
+        </form>
+
+    
+</table>
+
+</td><td han="top">
+    <table>
+    {% for scan in scans %}
+
+			<td>
+				<a href="{% static scan.image.name %}"><img height="300" src="{% static scan.image.name %}" /></a>
+            </td>
+    {% endfor %}
+    </table>
+</td></tr>
 </table>
 <br/>
 {% endif %}
 
+
+<!--
 <table border="1">
 	<tr>
 		<th>position</th><th>Image</th><th>Remove</th>
@@ -72,4 +108,6 @@
 		</tr>
 	{% endfor %}
 </table>
+-->
+
 {% endblock %}

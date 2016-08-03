@@ -17,10 +17,16 @@ class Card(models.Model):
     count = models.IntegerField(blank=True, default=0)
     outbox = models.IntegerField(blank=True, default=0)
     
+    mtgcode =  models.IntegerField(null=True)
+    rarity = models.CharField(max_length=255)
+    
+
+    
 class CardForm(ModelForm):
     class Meta:
         model = Card
-        fields = ['image', 'thumb', 'name', 'price', 'count', 'outbox']
+        fields = ['image', 'thumb', 'name', 'price', 'count', 'outbox', 'mtgcode', 'rarity']
+
     
 class Scan(models.Model):
     position = models.IntegerField(blank=True, default=0)
