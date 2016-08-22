@@ -170,8 +170,10 @@ class MTG_Scanner:
 
             
         #print('1')
+        #self.frame = self.transformer.applyTransforms(frame)
+        #self.frame=frame
         self.frame = self.transformer.applyTransforms(frame)
-    
+        
         #print('2')
         self.detected_id = self.detectCard()
         #print('3')
@@ -225,6 +227,8 @@ class MTG_Scanner:
         bestMatch = None
         correlations = {}
         for MultiverseID in finalists:
+
+            
             hamd = candidates[MultiverseID]
             #print(self.ROOT_PATH % self.referencedb.IMAGE_FILE % MultiverseID)
             s = self.referencedb.IMAGE_FILE % MultiverseID
@@ -237,6 +241,9 @@ class MTG_Scanner:
             if (bestMatch is None or corr > correlations[bestMatch]):
                 bestMatch = MultiverseID
             correlations[MultiverseID] = corr
+            
+            name, code, rarity = self.referencedb.get_card_info(MultiverseID)
+            print('Candidate: ' + name + ' [' + code + '] ' + str(corr))
         #print('1d')
         return bestMatch
 

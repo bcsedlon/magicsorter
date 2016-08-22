@@ -103,6 +103,8 @@ import time
 import serial
 class hw2X(): 
     ser = None
+    def open2(self):
+        pass
     def open(self):
         # configure the serial connections (the parameters differs on the device you are connecting to)
         self.ser = serial.Serial(
@@ -115,16 +117,16 @@ class hw2X():
         rtscts = False, 
         dsrdtr = False)
         #self.ser.open()
-        time.sleep(5)
+        time.sleep(2)
         print 'ok'
     
     def close(self):
         self.ser.close()  
         
     def takeCard(self):
-        f = '00'
-        h = '40'
-        data=f + ',' + h +'a'
+        f = '0'
+        h = '100'
+        data=f + 'f,' + h +'h'
         b = bytearray()
         b.extend(data)
         print data
@@ -139,11 +141,11 @@ class hw2X():
             out += self.ser.read(1)
         print out    
         
-        #ime.sleep(1)
+        #time.sleep(1)
         
-        f = '190'
-        h = '10'
-        data=f + ',' + h +'a'
+        f = '180'
+        h = '175'
+        data=f + 'f,' + h +'h'
         b = bytearray()
         b.extend(data)
         print data

@@ -82,7 +82,7 @@ def t():
         #print(pytesseract.image_to_string(Image.open(filename), lang='eng'))
         return
 
-
+import hw
 class Sorter():
     
     outbox_num = 1
@@ -90,17 +90,26 @@ class Sorter():
     RUN = True
     thr = None
     
+    hw = hw.hw2X()
+    hw.open()
+    
     @staticmethod 
     def init(outbox_num):
         Sorter.outbox_num = outbox_num
+        
+        
     
     @staticmethod 
     def sort():
+    
+        hw2 = hw.hw2X()
+        hw2.open()
     
         sortingout = []
     
         while Sorter.RUN:
             print 'Sorter: go to take card'
+            hw2.takeCard()
             #modbus.Scanner.outServo.value = 0
             time.sleep(1)
             #while modbus.Scanner.inServo.value != 0:
@@ -132,7 +141,7 @@ class Sorter():
         
                 print 'Sorter: set out box {} for card_id {}'.format(outbox, scan.fk_card_id)
                 #modbus.Scanner.outFeeder.value = outbox
-                time.sleep(1)
+                #time.sleep(1)
                 #while modbus.Scanner.inFeeder.value != OUTBOX:
                 #    pass
         
@@ -222,11 +231,15 @@ class Scanner():
     
     @staticmethod 
     def run():
-        cap = cv2.VideoCapture(1)
-        ret = cap.set(3, 1280)#320) 
-        ret = cap.set(4, 720)#240)
+        cap = cv2.VideoCapture(2)
+        #ret = cap.set(3, 1280)#320) 
+        #ret = cap.set(4, 720)#240)
         
         ret, frame = cap.read()
+        
+        
+        
+        
         Scanner.img = frame
         #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -238,7 +251,29 @@ class Scanner():
         Scanner.img1 = None
         
         while Scanner.RUN:  
+            #print 'dsfsf'
+
+        
+        
+        
             ret, frame = cap.read()
+            
+            #height, width, __ = frame.shape
+            width, height, __ = frame.shape
+            M = cv2.getRotationMatrix2D(
+                        (width / 2, height / 2),
+                        270,
+                        1)
+            #frame = cv2.warpAffine(frame, M, (height*2, width*2))
+            M = cv2.getRotationMatrix2D(
+                        (width/2, height/2),
+                        270,
+                        1)
+            frame = cv2.warpAffine(frame, M, (width*3,height*3))
+            #frame =frame[ 120:525, 160:450]
+            frame =frame[ 100:555, 140:480]
+            #self.frame = frame
+            
             Scanner.img = frame
             #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -246,18 +281,18 @@ class Scanner():
          
             if Scanner.img1 is not None:
                 height, width, __ = Scanner.img1.shape 
-                img0[0:height, 0:width] = Scanner.img1
+                #img0[0:height, 0:width] = Scanner.img1
                 
                 #img0[0:height, width: 2 * width] = cv2.Canny(Scanner.img1, 50, 150)#, apertureSize = 3)
 
-                cv2.imshow('Edges', cv2.Canny(Scanner.img1, 50, 150, apertureSize = 3))
-
+                #cv2.imshow('Edges', cv2.Canny(Scanner.img1, 50, 150, apertureSize = 3))
+                cv2.imshow('card', Scanner.img1)
              
                 if Scanner.img2 is not None:
                     height, width, __ = Scanner.img2.shape 
-                    img0[height:height*2, 0:width]=Scanner.img2
+                    #img0[height:height*2, 0:width]=Scanner.img2
                     
-                    cv2.imshow('EdgesCard', cv2.Canny(Scanner.img2, 50, 150, apertureSize = 3))
+                    #cv2.imshow('EdgesCard', cv2.Canny(Scanner.img2, 50, 150, apertureSize = 3))
          
             #cv2.putText(img0 , Scanner.text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
             cv2.imshow(title, img0)
