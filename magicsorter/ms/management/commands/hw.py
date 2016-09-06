@@ -118,7 +118,7 @@ class hw2X():
         dsrdtr = False)
         #self.ser.open()
         time.sleep(2)
-        print 'ok'
+        #print 'ok'
     
     def close(self):
         self.ser.close()  

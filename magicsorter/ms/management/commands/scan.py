@@ -229,9 +229,12 @@ class Scanner():
     RUN = True
     thr = None
     
+    video_device = 0
+    
     @staticmethod 
     def run():
-        cap = cv2.VideoCapture(2)
+        print('Scan: Capturing from device %i' % Scanner.video_device) 
+        cap = cv2.VideoCapture(Scanner.video_device)
         #ret = cap.set(3, 1280)#320) 
         #ret = cap.set(4, 720)#240)
         
@@ -507,14 +510,16 @@ class Command(BaseCommand):
             Config.read('magicsorter.ini')
             port = Config.get('modbus', 'port')
             outbox_num = int(Config.get('sorter', 'outbox_num'))
+            video_device = int(Config.get('video', 'device'))
         except:
-            cfgfile = open('magicsorter.ini','w+')
+            cfgfile = open('magicsorter.ini','w')
             # add the settings to the structure of the file, and lets write it out...
             Config.add_section('modbus')
-            Config.set('modbus','port','COM1')
+            Config.set('modbus','port','/dev/ttyUSB0')
             Config.add_section('sorter')
             Config.set('sorter','outbox_num','1')
-            
+            Config.add_section('video')
+            Config.set('video','device','0')
             Config.write(cfgfile)
             cfgfile.close()
             print 'Please check magicsorter.ini and try again!'
@@ -525,6 +530,8 @@ class Command(BaseCommand):
         #modbus.ModbusServer.startServerAsync()
         
         Sorter.init(outbox_num)
+        
+        Scanner.video_device=video_device
         
         #if Scan.objects.filter(position__gt=0):
         #    Sorter.sort2()
