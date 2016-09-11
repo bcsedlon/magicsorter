@@ -230,16 +230,23 @@ class Scanner():
     thr = None
     
     video_device = 0
+    #print('Scan: Capturing from device %i' % video_device) 
+    #cap = cv2.VideoCapture(video_device)
+    #print('Scan: Capturing from device %i done' % video_device) 
+    #cap = None
     
     @staticmethod 
     def run():
-        print('Scan: Capturing from device %i' % Scanner.video_device) 
+        #print('Scan: Capturing from device %i' % Scanner.video_device) 
         cap = cv2.VideoCapture(Scanner.video_device)
+        #cap = cv2.VideoCapture(0)
         #ret = cap.set(3, 1280)#320) 
         #ret = cap.set(4, 720)#240)
-        
+        print('0')
+        #ret, frame = cap.read()
+        #global cap
         ret, frame = cap.read()
-        
+        print('1')
         
         
         
@@ -312,6 +319,8 @@ class Scanner():
             #if k == 113 or SCAN== -1:
                 # q
             #    break
+            
+            
         cap.release()
         cv2.destroyAllWindows()  
 
@@ -531,7 +540,11 @@ class Command(BaseCommand):
         
         Sorter.init(outbox_num)
         
-        Scanner.video_device=video_device
+        #Scanner.video_device=video_device
+        print('HandleX: Capturing from device %i' % video_device) 
+        cap = cv2.VideoCapture(video_device)
+        print('HandleX: Capturing from device %i done' % video_device) 
+    
         
         #if Scan.objects.filter(position__gt=0):
         #    Sorter.sort2()

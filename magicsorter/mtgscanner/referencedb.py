@@ -321,7 +321,9 @@ class MTG_Reference_DB:
                     cursor.execute("""SELECT * FROM Hashes WHERE
                         MultiverseID = ?""", (MultiverseID,))
                     if (cursor.fetchone() is None):
+                        print(path)
                         ihash = phash.dct_imagehash(path)
+                        print(ihash)
                         cursor.execute(
                             """INSERT INTO Hashes
                             (MultiverseID, Hash) VALUES(?, ?)""",

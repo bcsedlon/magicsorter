@@ -1,0 +1,8 @@
+Django==1.9
+more-itertools==2.2
+numpy==1.11.1
+phash==0.2.0
+Pillow==3.3.1
+progressbar==2.3
+pyFirmata==1.0.3
+pyserial==3.1.1

@@ -1,0 +1,63 @@
+##############
+### opencv ###
+##############
+sudo apt-get install libopencv-dev python-opencv
+
+#copy to virtualenv
+cp /usr/lib/python2.7/dist-packages/cv* env/lib/python2.7/site-packages/
+
+#(re)activate virtualenv
+
+################
+### libphash ###
+################
+
+wget http://www.mega-nerd.com/libsndfile/files/libsndfile-1.0.27.tar.gz
+./configure
+make
+sudo make install
+
+wget http://www.mega-nerd.com/libsamplerate/libsamplerate-0.1.8.tar.gz
+./configure
+make
+sudo make install
+
+http://mpg123.de/
+./configure
+make
+sudo make install
+
+wget http://cimg.eu/files/CImg_latest.zip
+cp CImg.h phash
+
+wget http://www.phash.org/releases/pHash-0.9.6.tar.gz
+
+#create libav10.patch
+diff -u libphash-0.9.4/src/cimgffmpeg.cpp libphash-0.9.4/src/cimgffmpeg.cpp
+--- libphash-0.9.4/src/cimgffmpeg.cpp
++++ libphash-0.9.4/src/cimgffmpeg.cpp
+@@ -431,8 +431,8 @@
+         if(videoStream==-1)
+ 	    return -1; // Didn't find a video stream
+ 	
+-	int num = (pFormatCtx->streams[videoStream]->r_frame_rate).num;
+-	int den = (pFormatCtx->streams[videoStream]->r_frame_rate).den;
++	int num = (pFormatCtx->streams[videoStream]->avg_frame_rate).num;
++	int den = (pFormatCtx->streams[videoStream]->avg_frame_rate).den;
+ 	result = num/den;
+ 
+ 	avformat_close_input(&pFormatCtx);
+
+git apply libav10.patch
+
+./configure
+make
+sudo make install
+
+sudo ldconfig /usr/local/lib
+
+#webcam connect as USB 3.0
+
+#redirec cmd output and error output
+#python mtgscanner.py --update >> outfile.txt 2>&1
+#grep -B 3 -A 2 Prem
