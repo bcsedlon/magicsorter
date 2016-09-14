@@ -90,20 +90,20 @@ class Sorter():
     RUN = True
     thr = None
     
-    hw = hw.hw2X()
-    hw.open()
+    #hw = hw.hw2X()
+    #hw.open()
+    port = None    
     
     @staticmethod 
-    def init(outbox_num):
+    def init(outbox_num, port):
         Sorter.outbox_num = outbox_num
-        
-        
+    
     
     @staticmethod 
-    def sort():
+    def sort(port):
     
         hw2 = hw.hw2X()
-        hw2.open()
+        hw2.open(port)
     
         sortingout = []
     
@@ -237,16 +237,18 @@ class Scanner():
     
     @staticmethod 
     def run():
-        #print('Scan: Capturing from device %i' % Scanner.video_device) 
+        print('Scan: Capturing from device %i' % Scanner.video_device) 
+        print('Scan: start initicialization.')
         cap = cv2.VideoCapture(Scanner.video_device)
         #cap = cv2.VideoCapture(0)
         #ret = cap.set(3, 1280)#320) 
         #ret = cap.set(4, 720)#240)
-        print('0')
+
         #ret, frame = cap.read()
         #global cap
         ret, frame = cap.read()
-        print('1')
+        #time.sleep(20)
+        print('Scan: initicialization done.')
         
         
         
@@ -538,12 +540,13 @@ class Command(BaseCommand):
         #modbus.ModbusServer.init(port)
         #modbus.ModbusServer.startServerAsync()
         
-        Sorter.init(outbox_num)
+        Sorter.init(outbox_num, port)
         
-        #Scanner.video_device=video_device
-        print('HandleX: Capturing from device %i' % video_device) 
-        cap = cv2.VideoCapture(video_device)
-        print('HandleX: Capturing from device %i done' % video_device) 
+        Scanner.video_device=video_device
+        
+        #print('HandleX: Capturing from device %i' % video_device) 
+        #cap = cv2.VideoCapture(video_device)
+        #print('HandleX: Capturing from device %i done' % video_device) 
     
         
         #if Scan.objects.filter(position__gt=0):
@@ -556,8 +559,14 @@ class Command(BaseCommand):
             Scan.objects.all().delete()
         
             Scanner.start()  
+            
+            print('Wait for Scanner inicialization ... 10s')
+            time.sleep(10)
             #Sorter.start()
-            Sorter.sort()
+            
+            #if port == 'None':
+            #    port = None
+            Sorter.sort(port)
         
             #while Scanner.RUN:
             #    pass

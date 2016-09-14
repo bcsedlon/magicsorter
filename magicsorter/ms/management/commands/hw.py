@@ -46,7 +46,7 @@ for the Mega for example::
 
 '''
 
-from pyfirmata import Arduino, util
+#from pyfirmata import Arduino, util
 import time
 
 class hw():
@@ -102,28 +102,43 @@ class hw():
 import time
 import serial
 class hw2X(): 
+    
+    port = None
     ser = None
+    
     def open2(self):
         pass
-    def open(self):
-        # configure the serial connections (the parameters differs on the device you are connecting to)
-        self.ser = serial.Serial(
-        port='/dev/ttyUSB0',
-        baudrate=9600,
-        parity=serial.PARITY_NONE,
-        stopbits=serial.STOPBITS_ONE,
-        bytesize=serial.EIGHTBITS,
-        xonxoff = False,
-        rtscts = False, 
-        dsrdtr = False)
+    def open(self, port):
+        
+        
+        self.port = port    
+        try:    
+            # configure the serial connections (the parameters differs on the device you are connecting to)
+            self.ser = serial.Serial(
+            port=port, #'/dev/ttyUSB0',
+            baudrate=9600,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            bytesize=serial.EIGHTBITS,
+            xonxoff = False,
+            rtscts = False, 
+            dsrdtr = False)
+        except:
+            print('HW: port %s not opened!' % port)
+            self.port = None
+            
         #self.ser.open()
         time.sleep(2)
         #print 'ok'
     
     def close(self):
+        if self.port is None:
+            return
         self.ser.close()  
         
     def takeCard(self):
+        if self.port is None:
+            return
         f = '0'
         h = '100'
         data=f + 'f,' + h +'h'
