@@ -124,7 +124,7 @@ class hw2X():
             rtscts = False, 
             dsrdtr = False)
         except:
-            print('HW: port %s not opened!' % port)
+            print('HW: port %s not open!' % port)
             self.port = None
             
         #self.ser.open()

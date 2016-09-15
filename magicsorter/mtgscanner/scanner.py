@@ -21,7 +21,8 @@ the camera to pass off to other modules.
 """
 
 import os
-
+import pytesseract
+from PIL import Image, ImageEnhance, ImageFilter
 
 class MTG_Scanner:
     """Attributes:
@@ -51,6 +52,7 @@ class MTG_Scanner:
         self.threshold = 15
         self.detected_card = None
         self.detected_id = None
+        self.detected_ids = None
         self.previous_id = None
         self.blacklist = []
 
@@ -172,13 +174,59 @@ class MTG_Scanner:
         #print('1')
         #self.frame = self.transformer.applyTransforms(frame)
         #self.frame=frame
+        
+        '''
+        TEST
         self.frame = self.transformer.applyTransforms(frame)
+        '''
+        self.frame = frame
         
         #print('2')
-        self.detected_id = self.detectCard()
+        #self.detected_id = self.detectCard()
+        #name, code, rarity = self.referencedb.get_card_info(self.detected_id)
+        
         #print('3')
         
-        name, code, rarity = self.referencedb.get_card_info(self.detected_id)
+        self.detected_ids = self.detectCard()
+        print(self.detected_ids)
+        correlations = {}
+        bestMatch = None
+        
+        img = Image.open('frameCam.jpg')
+        img = img.convert('RGBA')
+        pix = img.load()
+        l = 102
+        x0 = 20
+        x1 = 150
+        y0 = 20
+        y1 = 33
+        for y in range(img.size[1]):
+            for x in range(img.size[0]):
+                if x0 < x < x1 and y0 < y < y1:
+                    if pix[x, y][0] < l or pix[x, y][1] < l or pix[x, y][2] < l:
+                        pix[x, y] = (0, 0, 0, 255)
+                    else:
+                        pix[x, y] = (255, 255, 255, 255)
+                else:
+                    pix[x, y] = (255, 255, 255, 255)
+        img.save('frameOcr.jpg')
+        
+        for MultiverseID in self.detected_ids:
+            name, code, rarity = self.referencedb.get_card_info(MultiverseID)
+            #OCR
+            
+            
+            print(pytesseract.image_to_string(Image.open('frameOcr.jpg')))
+            corr = 1
+            print('Candidate for OCR: ' + name + ' [' + code + '] ' + str(corr))
+            
+            if (bestMatch is None or corr > correlations[bestMatch]):
+                bestMatch = MultiverseID
+            correlations[MultiverseID] = corr
+            
+        self.detected_id = bestMatch    
+
+        
         #print('4')
         print('Detected: ' + name + ' [' + code + ']')
         cv2.imwrite('frameDet.jpg', self.frame)
@@ -204,20 +252,29 @@ class MTG_Scanner:
         #print('1a')
         candidates = {}
         hashes = self.referencedb.get_hashes()
+        #print('1a1')
+        #print(hashes)
         for MultiverseID in hashes:
+            #print('id %i' % MultiverseID)
             if (MultiverseID in self.blacklist):
                 continue
-
+            
             hamd = phash.hamming_distance(ihash, int(hashes[MultiverseID]))
+            #print('1a11')
+            #print('ham: %i tresh: %i id: %i' % (hamd, self.threshold, MultiverseID))
+            #print(hamd <= self.threshold)
             if (hamd <= self.threshold):
+                #print('X')
                 candidates[MultiverseID] = hamd
-
+        #print('1a2')
         if (not len(candidates)):
             print('No matches found')
             return None
 
+        #print('1a3')
         finalists = []
         minV = min(candidates.values())
+        #print('1a4')
         for MultiverseID in candidates:
             if (candidates[MultiverseID] == minV):
                 finalists.append(MultiverseID)
@@ -238,6 +295,7 @@ class MTG_Scanner:
             digest = phash.image_digest(s)
             
             corr = phash.cross_correlation(idigest, digest)
+            
             if (bestMatch is None or corr > correlations[bestMatch]):
                 bestMatch = MultiverseID
             correlations[MultiverseID] = corr
@@ -245,7 +303,20 @@ class MTG_Scanner:
             name, code, rarity = self.referencedb.get_card_info(MultiverseID)
             print('Candidate: ' + name + ' [' + code + '] ' + str(corr))
         #print('1d')
+        
+        bestMatches = []
+        ACCURACY = 1000
+        print('Finalists:')
+        print(finalists)
+        for MultiverseID in finalists:
+            if correlations[MultiverseID] + ACCURACY > correlations[bestMatch]:
+                bestMatches.append(MultiverseID)
+        
+        return bestMatches       
+        #return more finallist        
+        
         return bestMatch
+ 
 
     def handleKey(self, key, frame):
         if (self.detected_card is None):

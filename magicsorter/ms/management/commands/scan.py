@@ -215,6 +215,7 @@ class Sorter():
             modbus.Scanner.outServo.value = 120
             time.sleep(1) 
 
+import pytesseract 
 class Scanner():
     
     position = 0
@@ -267,9 +268,10 @@ class Scanner():
 
         
         
-        
+            '''
+            TEST
             ret, frame = cap.read()
-            
+        
             #height, width, __ = frame.shape
             width, height, __ = frame.shape
             M = cv2.getRotationMatrix2D(
@@ -285,6 +287,8 @@ class Scanner():
             #frame =frame[ 120:525, 160:450]
             frame =frame[ 100:555, 140:480]
             #self.frame = frame
+            '''
+            frame = frame = cv2.imread('frameCam.jpg', cv2.IMREAD_UNCHANGED)
             
             Scanner.img = frame
             #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -560,8 +564,8 @@ class Command(BaseCommand):
         
             Scanner.start()  
             
-            print('Wait for Scanner inicialization ... 10s')
-            time.sleep(10)
+            print('Wait for Scanner inicialization ... 3s')
+            time.sleep(3)
             #Sorter.start()
             
             #if port == 'None':
