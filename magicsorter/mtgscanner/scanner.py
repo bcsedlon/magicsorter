@@ -62,24 +62,27 @@ class MTG_Scanner:
         self.transformer = MTG_Transformer(self.debugger)
         self.captureDevice = cv2.VideoCapture(source)
 
-       
-        '''
-        def rotateImage(self, image, angle):
-        image_center = tuple(np.array(image.shape)/2)
-        image_center = (image_center[0], image_center[1])	
-        #print(image_center)
-        rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
-        #print(rot_mat)
-        #print(image.shape)
-        shape = (image.shape[0], image.shape[1])
-        shape = (375, 520)
-        shape = (400, 600)
-        #print(shape)
-        result = cv2.warpAffine(image, rot_mat, shape,flags=cv2.INTER_LINEAR)
-        return result
-        '''
-
         self.bTakePic = True
+        
+    def rotateImage(self, image, angle):
+        	image_center = tuple(np.array(image.shape)/2)
+        	image_center = (image_center[0], image_center[1])	
+	        #print(image_center)
+        	rot_mat = cv2.getRotationMatrix2D(image_center, angle, -1.0)
+        	#print(rot_mat)
+        	#print(image.shape)
+        	shape = (image.shape[0]*2, image.shape[1]*2)
+        	#shape = (375, 520)
+        	#shape = (400, 600)
+        	#print(shape)
+        	result = cv2.warpAffine(image, rot_mat, shape,flags=cv2.INTER_LINEAR)
+		#result = result[175:645, 170:515]		
+		#result = result[170:650, 165:520]
+		result = result[150:670, 145:540]        	
+		return result
+        
+
+    #self.bTakePic = True
         
     def run(self):
         """Main execution
@@ -122,7 +125,7 @@ class MTG_Scanner:
                 #__, frame = self.captureDevice.read()
                 
                 #frame = cv2.flip(frame, 0)
-                #frame = self.rotateImage(frame, 90)
+                frame = self.rotateImage(frame, 90)
                 if (frame is None):
                     print('Error: No frame read from camera')
                     break
@@ -131,7 +134,7 @@ class MTG_Scanner:
                     #print('bApplyTransforms')
                     try:
                         frame = self.transformer.applyTransforms(frame)
-                        #pass
+                        pass
                     except MTGException as msg:
                         self.bApplyTransforms = False
                 else:
@@ -165,30 +168,77 @@ class MTG_Scanner:
 
         cv2.destroyAllWindows()
         
-    def test(self):
+    def test(self, bApplyTransforms):
         frame = cv2.imread('frameCam.jpg', cv2.IMREAD_UNCHANGED)
         if (frame is None):
             print('Error: No frame read from camera')
 
-            
+
         #print('1')
         #self.frame = self.transformer.applyTransforms(frame)
         #self.frame=frame
         
-        '''
-        TEST
-        self.frame = self.transformer.applyTransforms(frame)
-        '''
+        
+        #TEST
+        #self.frame = self.transformer.applyTransforms(frame)
+        if (bApplyTransforms):
+            try:
+                frame = self.transformer.applyTransforms(frame)
+                pass
+            except MTGException as msg:
+                print(str(msg))        
+                #self.bApplyTransforms = False
+        
         self.frame = frame
         
-        #print('2')
-        #self.detected_id = self.detectCard()
-        #name, code, rarity = self.referencedb.get_card_info(self.detected_id)
+        print('For detection')
+        cv2.imshow('For detection', self.frame) 
+
+        self.detected_id = self.detectCard()
+        name, code, rarity = self.referencedb.get_card_info(self.detected_id)
+
+        print(self.detected_id )
+        s = self.referencedb.IMAGE_FILE % self.detected_id
+        s = '%s/%s' % (self.ROOT_PATH, s)
+        self.detected_card = cv2.imread(s, cv2.IMREAD_UNCHANGED)
+        #print(self.detected_card)
         
-        #print('3')
+        print('Detected card')
+        cv2.imshow('Detected card', self.detected_card)
+
+        '''
+        #TODO OCR TEST
+        frameocr = frame[25:50, 30:200]
+        frameocr = cv2.cvtColor(frameocr, cv2.COLOR_BGR2GRAY)
+
+        #img = frameocr#.convert('RGBA')
+        #pix = img#.load()
         
-        self.detected_ids = self.detectCard()
-        print(self.detected_ids)
+        #width, height, __ = frameocr.shape
+        #for y in range(height):
+        #    for x in range(width):
+        #        if x0 < x < x1 and y0 < y < y1:
+        #            pass
+        #            #if pix[x, y][0] < l or pix[x, y][1] < l or pix[x, y][2] < l:
+        #            #    pix[x, y] = (0, 0, 0, 255)
+        #            #else:
+        #            #    pix[x, y] = (255, 255, 255, 255)
+        #        else:
+        #            pix[x, y] = (255, 255, 255, 255)
+
+        print('For OCR')
+        cv2.imshow('For OCR', frameocr) 
+        cv2.imwrite('frameOCR.jpg', frameocr)
+        print('Text:')
+        print(pytesseract.image_to_string(Image.open('frameOCR.jpg')))
+        #
+        '''     
+        return self.detected_id , name, code, self.frame,  self.detected_card, rarity
+
+
+
+
+
         correlations = {}
         bestMatch = None
         
@@ -200,16 +250,29 @@ class MTG_Scanner:
         x1 = 150
         y0 = 20
         y1 = 33
+        
+        #img = img.filter(ImageFilter.MedianFilter())
+        #enhancer = ImageEnhance.Contrast(img)
+        #img = enhancer.enhance(2)
+        #img = img.convert('1')
+        #img.save('frameOcr1.jpg')
+        
         for y in range(img.size[1]):
             for x in range(img.size[0]):
                 if x0 < x < x1 and y0 < y < y1:
-                    if pix[x, y][0] < l or pix[x, y][1] < l or pix[x, y][2] < l:
-                        pix[x, y] = (0, 0, 0, 255)
-                    else:
-                        pix[x, y] = (255, 255, 255, 255)
+                    pass
+                    #if pix[x, y][0] < l or pix[x, y][1] < l or pix[x, y][2] < l:
+                    #    pix[x, y] = (0, 0, 0, 255)
+                    #else:
+                    #    pix[x, y] = (255, 255, 255, 255)
                 else:
                     pix[x, y] = (255, 255, 255, 255)
+        
+        
+        
+        
         img.save('frameOcr.jpg')
+        
         
         for MultiverseID in self.detected_ids:
             name, code, rarity = self.referencedb.get_card_info(MultiverseID)
@@ -312,7 +375,7 @@ class MTG_Scanner:
             if correlations[MultiverseID] + ACCURACY > correlations[bestMatch]:
                 bestMatches.append(MultiverseID)
         
-        return bestMatches       
+        #return bestMatches       
         #return more finallist        
         
         return bestMatch
@@ -326,6 +389,7 @@ class MTG_Scanner:
             elif (key == ord('d')):
                 #print('d')
                 self.debugger.toggle()
+		self.bTakePic = True
             elif (key == 171):
                 #print('171')
                 self.detected_id = self.previous_id

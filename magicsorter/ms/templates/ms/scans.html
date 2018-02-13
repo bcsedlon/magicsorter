@@ -1,0 +1,21 @@
+{% extends 'ms/base.html' %}
+
+{% block content %}
+
+{% load staticfiles %}
+<h4>
+Count {{ scans.count }}
+</h4>
+
+    {% for scan in scans %}
+
+
+				<a href="{% static scan.image.name %}"><img height="300" src="{% static scan.image.name %}" /></a>
+                <!--{{scan.mismatch}}
+                <a href="{% url 'ms:scan_mismatch' scan.id %}">Mismatch</a>-->
+
+    {% endfor %}
+
+
+
+{% endblock %}

@@ -1,39 +1,40 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.core.files.base import File
-
+from django.core.exceptions import ObjectDoesNotExist
 from ms.models import Card, Scan
-
 import cv2
-
-#import numpy as np
-#from matplotlib import pyplot as plt
 import pickle
 import sys
-
 from StringIO import StringIO
-
-#import tesseract
-
+import pytesseract 
+#import numpy as np
+#from matplotlib import pyplot as plt
 import copy
 #from ms.management.commands.modbus import ModbusServer
 #from PIL import Image    
-
-THUMB_RATIO = 0.5
-THUMB_RATIO2 = 0.2
-
 import threading
-#import modbus
 import time
-
 import ConfigParser
+from os import walk
+import os
+import fnmatch
 
 from mtgscanner import mtgscanner
 from mtgscanner import scanner
 from mtgscanner import referencedb
 from mtgscanner import storagedb
 
+import urllib2
 
-mtg = scanner.MTG_Scanner(0 , mtgscanner.referencedb.MTG_Reference_DB(), storagedb.MTG_Storage_DB('default'), False)
+import imutils
+from shutil import copyfile
+import uuid
+
+THUMB_RATIO = 0.5
+THUMB_RATIO2 = 0.2
+
+
+mtg  = scanner.MTG_Scanner(0 , mtgscanner.referencedb.MTG_Reference_DB(), storagedb.MTG_Storage_DB('default'), False)
 
 def t():
         mImgFile = '2a.jpg'
@@ -52,7 +53,7 @@ def t():
         print result
         api.End()
         return
-        
+    
         
         print 'ocr'
         mImgFile = '2a.jpg'
@@ -90,36 +91,26 @@ class Sorter():
     RUN = True
     thr = None
     
-    #hw = hw.hw2X()
-    #hw.open()
-    port = None    
-    
+   
     @staticmethod 
     def init(outbox_num, port):
         Sorter.outbox_num = outbox_num
     
-    
     @staticmethod 
     def sort(port):
     
-        hw2 = hw.hw2X()
-        hw2.open(port)
+        hwdev = hw.hw()
+        hwdev.open(port)
     
         sortingout = []
     
         while Sorter.RUN:
-            print 'Sorter: go to take card'
-            hw2.takeCard()
-            #modbus.Scanner.outServo.value = 0
-            time.sleep(1)
-            #while modbus.Scanner.inServo.value != 0:
-            #    pass
-    
-            print 'Sorter: go to scan position'
-            #modbus.Scanner.outServo.value = 100
-            time.sleep(1)
-            #while modbus.Scanner.inServo.value != 100:
-            #    pass
+            print 'Sorter: HW: next card'
+            hwdev.takeCard()
+            
+            #a = raw_input('PRESS ENTER')
+            
+            time.sleep(2)
     
             print 'Sorter: scan card'
             scan = Scanner.scan()
@@ -140,18 +131,10 @@ class Sorter():
                     outbox = 0 
         
                 print 'Sorter: set out box {} for card_id {}'.format(outbox, scan.fk_card_id)
-                #modbus.Scanner.outFeeder.value = outbox
-                #time.sleep(1)
-                #while modbus.Scanner.inFeeder.value != OUTBOX:
-                #    pass
         
-            print 'Sorter: go to release card'
-            #modbus.Scanner.outServo.value = 120
-            time.sleep(1)
-            #while modbus.Scanner.inServo.value != 120:
-            #    pass
-        
-
+            print 'Sorter: finish'
+            #time.sleep(3)
+    
     @staticmethod    
     def start():
         Sorter.RUN = TRUE
@@ -161,8 +144,8 @@ class Sorter():
     @staticmethod    
     def stop():
         Sorter.RUN = False
-        if Sorter.thr:
-            Sorter.thr.join()
+        #if Sorter.thr:
+        #    Sorter.thr.join()
 
     #second round, no scan, only sort out
     @staticmethod 
@@ -215,7 +198,6 @@ class Sorter():
             modbus.Scanner.outServo.value = 120
             time.sleep(1) 
 
-import pytesseract 
 class Scanner():
     
     position = 0
@@ -230,104 +212,146 @@ class Scanner():
     RUN = True
     thr = None
     
-    video_device = 0
-    #print('Scan: Capturing from device %i' % video_device) 
-    #cap = cv2.VideoCapture(video_device)
-    #print('Scan: Capturing from device %i done' % video_device) 
-    #cap = None
+    #video_device = 0
+    #url = None
     
     @staticmethod 
     def run():
+
         print('Scan: Capturing from device %i' % Scanner.video_device) 
         print('Scan: start initicialization.')
-        cap = cv2.VideoCapture(Scanner.video_device)
-        #cap = cv2.VideoCapture(0)
-        #ret = cap.set(3, 1280)#320) 
-        #ret = cap.set(4, 720)#240)
+        
+        cap = None
+        if Scanner.video_device > 0:
+            cap = cv2.VideoCapture(Scanner.video_device)
+        
+            #cap = cv2.VideoCapture(0)
+            #ret = cap.set(3, 1280)#320) 
+            #ret = cap.set(4, 720)#240)
+            #ret, frame = cap.read()
+            #global cap
 
-        #ret, frame = cap.read()
-        #global cap
-        ret, frame = cap.read()
-        #time.sleep(20)
+            ret, frame = cap.read()
+            #time.sleep(20)
+        elif Scanner.video_device == -1:
+            Scanner.fpath = 'scans_20170501'
+            Scanner.f = []
+            
+            filenames = os.listdir(Scanner.fpath)
+            for filename in filenames:
+                if fnmatch.fnmatch(filename, '*.jpg'):
+                    Scanner.f.append(filename)
+    
+            #for (dirpath, dirnames, filenames) in walk(Scanner.fpath):
+            #    if fnmatch.fnmatch(filename, '*.jpg'):
+            #        Scanner.f.extend(filenames)
+            #    break
+            
+            Scanner.findex = len(Scanner.f)
+            #print(Scanner.f)
+        elif Scanner.video_device == -2:
+            print('IP cam url: ' + Scanner.url)
+
+        
         print('Scan: initicialization done.')
+             
         
         
         
-        Scanner.img = frame
-        #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        title = 'esc for quit'
+        title = 'Camera: esc for quit'
         cv2.namedWindow(title)
         cv2.setMouseCallback(title, mouseclick)
         
+        #frame = cv2.imread('frameInput.jpg', cv2.IMREAD_UNCHANGED)
+        #cv2.imshow(title, frame)
+        
+        Scanner.img = None
         Scanner.img1 = None
         
+        frame = cv2.imread('frameInput.jpg', cv2.IMREAD_UNCHANGED)
         while Scanner.RUN:  
-            #print 'dsfsf'
 
+            if cap is not None:
+                ret, frame = cap.read()
+                
+                width, height, __ = frame.shape
+                M = cv2.getRotationMatrix2D(
+                    (width / 2, height / 2),
+                    270,
+                    1)
+                frame = cv2.warpAffine(frame, M, (height*2, width*2))
         
-        
-            '''
-            TEST
-            ret, frame = cap.read()
-        
-            #height, width, __ = frame.shape
-            width, height, __ = frame.shape
-            M = cv2.getRotationMatrix2D(
-                        (width / 2, height / 2),
-                        270,
-                        1)
-            #frame = cv2.warpAffine(frame, M, (height*2, width*2))
-            M = cv2.getRotationMatrix2D(
-                        (width/2, height/2),
-                        270,
-                        1)
-            frame = cv2.warpAffine(frame, M, (width*3,height*3))
-            #frame =frame[ 120:525, 160:450]
-            frame =frame[ 100:555, 140:480]
-            #self.frame = frame
-            '''
-            frame = frame = cv2.imread('frameCam.jpg', cv2.IMREAD_UNCHANGED)
+                #frame =frame[ 165:650, 160:525]
+                frame =frame[ 140:670, 150:550]
+                #frame =frame[ 100:555, 140:480]
+                #Scanner.img = frame
+                
+                Scanner.img = frame
+                img0 = copy.copy(Scanner.img)
+                cv2.imshow(title, img0)
+                
+            else:
+                #if Scanner.video_device == -2:
+                    #frame = Scanner.img
+                #    frame = cv2.imread('frameInput.jpg', cv2.IMREAD_UNCHANGED)
+                #else:
+                
+                #frame = cv2.imread('frameInput.jpg', cv2.IMREAD_UNCHANGED)
+                #Scanner.img = frame
+                pass
             
-            Scanner.img = frame
+            
+            
             #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             #Scanner.img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            img0 = copy.copy(Scanner.img)
+            
+
+            
+            
+            
+            '''
+            #cv2.imshow('Detected card', Scanner.img1)
          
             if Scanner.img1 is not None:
                 height, width, __ = Scanner.img1.shape 
-                #img0[0:height, 0:width] = Scanner.img1
-                
-                #img0[0:height, width: 2 * width] = cv2.Canny(Scanner.img1, 50, 150)#, apertureSize = 3)
 
+                #img0[0:height, 0:width] = Scanner.img1
+                #img0[0:height, width: 2 * width] = cv2.Canny(Scanner.img1, 50, 150)#, apertureSize = 3)
                 #cv2.imshow('Edges', cv2.Canny(Scanner.img1, 50, 150, apertureSize = 3))
-                cv2.imshow('card', Scanner.img1)
+ 
+                cv2.imshow('CardX', Scanner.img1)
              
-                if Scanner.img2 is not None:
-                    height, width, __ = Scanner.img2.shape 
+                #if Scanner.img2 is not None:
+                #    height, width, __ = Scanner.img2.shape 
                     #img0[height:height*2, 0:width]=Scanner.img2
                     
                     #cv2.imshow('EdgesCard', cv2.Canny(Scanner.img2, 50, 150, apertureSize = 3))
          
             #cv2.putText(img0 , Scanner.text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-            cv2.imshow(title, img0)
+            '''
+
+            #cv2.imshow(title, img0)
             
             k = cv2.waitKey(20) & 0xFF
             if k == 27:
-                Scanner.RUN = False
-                Sorter.RUN = False
-                #Sorter.stop()
+                #TODO 20170502
+                #Scanner.RUN = False
+                #Sorter.RUN = False
                 
-            #    break
-            
+                #TODO 20170502
+                Scanner.stop()
+                Sorter.stop()
+                
+                print('\n\nExiting - PRESS ENTER')
+                break
+                
             #print k
             #if k == 113 or SCAN== -1:
                 # q
             #    break
             
-            
-        cap.release()
+        if cap is not None:    
+            cap.release()
         cv2.destroyAllWindows()  
 
     @staticmethod    
@@ -339,14 +363,12 @@ class Scanner():
     @staticmethod    
     def stop():
         Scanner.RUN = False
-        if Scanner.thr:
-            Scanner.thr.join()
+        #if Scanner.thr:
+        #    Scanner.thr.join()
     
     
     #mtg = mtgscanner.MTG_Scanner()
-    
-
-    
+      
     @staticmethod 
     def scan():
         #OUTBOX = 0
@@ -355,15 +377,47 @@ class Scanner():
         Scanner.position = Scanner.position + 1
                 
         #img_hist = cv2.calcHist([Scanner.img],[0],None,[256],[0,256])
+        
+        if Scanner.video_device == -1:
+           if Scanner.findex < 0:
+               Scanner.findex = len(Scanner.f)
+           Scanner.findex = Scanner.findex - 1 
+           print(Scanner.f[Scanner.findex])
+           Scanner.img = cv2.imread(os.path.join(Scanner.fpath, Scanner.f[Scanner.findex]), cv2.IMREAD_UNCHANGED)
+            
+        if Scanner.video_device == -2:
+            s = urllib2.urlopen(Scanner.url)
+            with open('frameIPcam.jpg','wb') as output:
+                output.write(s.read())
+     
+            if Scanner.save_scans:
+                copyfile('frameIPcam.jpg', os.path.join('scans2', str(uuid.uuid4()) + '.jpg'))
+            Scanner.img = cv2.imread('frameIPcam.jpg', cv2.IMREAD_UNCHANGED)
+            
+            img0 = Scanner.img
+            #cv2.imshow(title, img0)
+            #Scanner.img =Scanner.img[ 140:670, 150:550]             
+            #Scanner.img =Scanner.img[ 170:770, 400:950]             
+            #width, height, __ = Scanner.img.shape
+            #M = cv2.getRotationMatrix2D((width / 2, height / 2),  90, 1)
+            #M = cv2.getRotationMatrix2D((width,  height),  90, 1)
+            
+            
+            #Scanner.img = cv2.warpAffine(Scanner.img, M, (width*2, height*2))
+            #Scanner.img =Scanner.img[ 70:450, 70:320]  
+            
+            Scanner.img = imutils.rotate_bound(Scanner.img, -90)  
+            Scanner.img =Scanner.img[ 185:1405, 170:1060]  #THL
+            #Scanner.img =Scanner.img[ 355:1515, 137:967]    #HUAWEI
+            
+            
+            #Scanner.img =Scanner.img[ 200:1480, 180:1100] 
+            #Scanner.img = cv2.resize(Scanner.img, (0,0), fx=THUMB_RATIO2, fy=THUMB_RATIO2)  
 
-        
-        #sev
-        
-        
-        #global mtg    
         cv2.imwrite('frameCam.jpg', Scanner.img)
         try:
-            id, name, code, frame, framecard, rarity = mtg.test()
+            id, name, code, frame, framecard, rarity = mtg.test(False)
+            #id, name, code, frame, framecard, rarity = mtg.test(True)
             
             height, width, __ = frame.shape
             ratio = height / width
@@ -390,39 +444,48 @@ class Scanner():
                 #print Scanner.text
                 raise Exception(Scanner.text)
             '''
-            
-            
+
             print(id, name, code, rarity)
         
         except Exception as err:
-            
-            #print('Trying scan again...')
             print(err) 
             Scanner.img1 = None
             Scanner.img2 = None
             return None
         
         card_id = 0
+        #print('MTG code: {}'.format(id))
+        
+        try:
+            cards = Card.objects.filter(mtgcode=id)
+            for c in cards:
+                #print('{} {} {}'.format(c.mtgcode, c.name, c.id))
+                card_id = c.id
+                card = c
+        except ObjectDoesNotExist:
+            card_id = 0
+
+        '''
         cards = Card.objects.order_by('pk')
-    
+            
         for card in cards:
-            '''
+            
             #template = cv2.imread(card.image.name, 1)
-            
-            if card.hist:
-                tempalte_hist = pickle.loads(card.hist)
-            else:
-                tempalte_hist = cv2.calcHist([template],[0],None,[256],[0,256])
-                card.hist = pickle.dumps(tempalte_hist)
-                card.save()
-            
+            #
+            #if card.hist:
+            #    tempalte_hist = pickle.loads(card.hist)
+            #else:
+            #    tempalte_hist = cv2.calcHist([template],[0],None,[256],[0,256])
+            #    card.hist = pickle.dumps(tempalte_hist)
+            #    card.save()
+            # 
             #TODO compare images
             #method = eval('CV_COMP_CORREL')
-            result = cv2.compareHist(img_hist, tempalte_hist, 0)
+            #result = cv2.compareHist(img_hist, tempalte_hist, 0)
             #print result
         
-            if result > 0.99:
-            '''
+            #if result > 0.99:
+            
             #print('%s %s' % (card.price, id,))
             if int(card.mtgcode) == id:
                 card_id = card.id
@@ -438,7 +501,7 @@ class Scanner():
                 Scanner.text = 'Scanner: match ' + str(card.id)
                 print Scanner.text
                 break
-        
+        '''
         #print card_id
         
         if card_id == 0:
@@ -478,6 +541,21 @@ class Scanner():
             card.save()
             content.close()
             f.close()
+
+        else:
+            #card_id = card.id
+            card.count = card.count + 1
+            card.save()
+                    
+            #Scanner.img1 = cv2.imread(card.image.path, 0)
+            #Scanner.img1 = cv2.resize(Scanner.img1, (0,0), fx=THUMB_RATIO2, fy=THUMB_RATIO2)   
+            Scanner.img1 = frame
+            #Scanner.img2 = cv2.resize(Scanner.img, (0,0), fx=THUMB_RATIO2, fy=THUMB_RATIO2)   
+            Scanner.img2 = framecard
+                    
+            Scanner.text = 'Scanner: match ' + str(card.id)
+            print Scanner.text
+            #break
             
         scan = Scan.objects.create(position=Scanner.position, fk_card=card)
         scan.outbox = card.outbox
@@ -503,10 +581,14 @@ class Scanner():
         #OUTBOX = scan.outbox + 1
         
         scan.save()
+        
+        print('Scanner.scan - finish')
+        
         return scan
      
 
 def mouseclick(event,x,y,flags,param):
+        #print(event)
         #if event == cv2.EVENT_LBUTTONDBLCLK:
         global SCAN
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -526,6 +608,8 @@ class Command(BaseCommand):
             port = Config.get('modbus', 'port')
             outbox_num = int(Config.get('sorter', 'outbox_num'))
             video_device = int(Config.get('video', 'device'))
+            url = Config.get('ipcam', 'url')
+            save_scans = bool(Config.get('settings', 'save_scans'))
         except:
             cfgfile = open('magicsorter.ini','w')
             # add the settings to the structure of the file, and lets write it out...
@@ -535,18 +619,20 @@ class Command(BaseCommand):
             Config.set('sorter','outbox_num','1')
             Config.add_section('video')
             Config.set('video','device','0')
+            Config.add_section('ipcam')
+            Config.set('ipcam','url','http://localhost:8080')
+            Config.add_section('settings')
+            Config.set('settings','save_scans','0')
             Config.write(cfgfile)
             cfgfile.close()
             print 'Please check magicsorter.ini and try again!'
             return
                 
-        ##ModbusServer.startServer()
-        #modbus.ModbusServer.init(port)
-        #modbus.ModbusServer.startServerAsync()
-        
         Sorter.init(outbox_num, port)
         
         Scanner.video_device=video_device
+        Scanner.url = url
+        Scanner.save_scans = save_scans
         
         #print('HandleX: Capturing from device %i' % video_device) 
         #cap = cv2.VideoCapture(video_device)
@@ -559,26 +645,22 @@ class Command(BaseCommand):
         if True:
             #Card.objects.all().delete()
             Card.objects.all().update(count=0, outbox=0)
-            
             Scan.objects.all().delete()
-        
             Scanner.start()  
             
             print('Wait for Scanner inicialization ... 3s')
             time.sleep(3)
-            #Sorter.start()
-            
-            #if port == 'None':
-            #    port = None
+        
             Sorter.sort(port)
         
-            #while Scanner.RUN:
-            #    pass
+            while Scanner.RUN:
+                pass
         
             #Sorter.stop()
             #Scanner.stop()
         
         #modbus.ModbusServer.stopServer()
+        
         
         return
     

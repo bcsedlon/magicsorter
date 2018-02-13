@@ -36,8 +36,17 @@ class CardDelete(DeleteView):
     #print card.id
     #Scan.objects.filter(fk_card_id=card.id).update(fk_card_id=0)
     
-    
-    
+  
+def scans(request, filter='all'):
+    if filter == 'mismatch':
+        scans = Scan.objects.filter(mismatch=True) #.order_by(sort)
+    else:
+        scans = Scan.objects.all()
+        
+    context = RequestContext(request, {
+            'scans': scans })
+    return render(request, 'ms/scans.html', context)
+
  
 
 def cards(request, sort='-count'):
@@ -85,6 +94,14 @@ def scan_delete(request, pk):
     
     return card(request, c.pk)
 
+def scan_mismatch(request, pk):
+    scan = Scan.objects.get(pk=pk)
+    scan.mismatch = True
+    scan.save()
+    c = Card.objects.get(pk=scan.fk_card_id)
+    return card(request, c.pk)
+ 
+    
 def card(request, pk):
     if pk=='0':
         scans = Scan.objects.filter(fk_card_id=0).order_by('position')
@@ -110,6 +127,8 @@ def card(request, pk):
               
     
     scans = Scan.objects.filter(fk_card=card).order_by('position')
+   
+    print "Mismatch / Total: " + str(Scan.objects.filter(mismatch=True).count()) + ' / ' + str(Scan.objects.count())
      
     
     context = RequestContext(request, {

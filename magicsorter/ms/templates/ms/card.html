@@ -76,8 +76,19 @@
     <table>
     {% for scan in scans %}
 
-			<td>
+			<td align="center">
 				<a href="{% static scan.image.name %}"><img height="300" src="{% static scan.image.name %}" /></a>
+                <br />
+                {{scan.mismatch}}
+                <br />
+                <a href="{% url 'ms:scan_mismatch' scan.id %}">Mismatch</a>
+                
+                <!--
+                <form action="" method="post">{% csrf_token %}
+                    <input type="hidden" name="id" value="{{card.id}}" />
+                    <input type="submit" value="Mismatch" />
+                </form>
+                -->
             </td>
     {% endfor %}
     </table>

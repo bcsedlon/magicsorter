@@ -32,7 +32,7 @@ class Scan(models.Model):
     position = models.IntegerField(blank=True, default=0)
     fk_card = models.ForeignKey(Card)
     outbox = models.IntegerField(blank=True, default=0)
-    
+    mismatch = models.BooleanField(blank=True, default=False)
     #result0 = models.FloatField(blank=True, default=0)
     #result1 = models.FloatField(blank=True, default=0)
     

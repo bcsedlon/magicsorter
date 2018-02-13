@@ -120,8 +120,8 @@ class MTG_Scanner:
 
         if (self.options.scan):
             print('Running scanner...')
-            #self.scanner.run()
-            self.scanner.test()
+            self.scanner.run()
+            #self.scanner.test()
 
         if (self.options.export):
             cards = self.storagedb.get_all()

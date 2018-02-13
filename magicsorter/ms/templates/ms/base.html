@@ -17,9 +17,16 @@
  			<a href="{% url 'ms:card' 0 %}">Removed</a>
  			
  			<a href="{% url 'ms:cards' 'all' %}">All</a>
+            
+    
  			
-		</h3>
-
+ 		</h3>
+        <h3>
+            Scans filter 
+            <a href="{% url 'ms:scans' 'mismatch' %}">Mismatch</a>
+            <a href="{% url 'ms:scans' 'all' %}">All</a>
+        </h3>
+        
 	{% if form %}
 		{% if form.errors %}<p><strong>{{ form.errors }}</strong></p>{% endif %}
 	{% endif %}
